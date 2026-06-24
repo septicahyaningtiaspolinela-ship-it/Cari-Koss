@@ -255,12 +255,12 @@ app.delete('/api/kamar/:id', authenticate, async (req, res) => {
 
 // ------------------------------------------------
 
-// Create uploads directory if not exists
-const fs = require('fs');
-if (!fs.existsSync('./uploads')){
-    fs.mkdirSync('./uploads');
+// Hanya jalankan app.listen jika tidak berjalan di Vercel (untuk lokal)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 }
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// WAJIB di-export untuk Vercel Serverless Functions
+module.exports = app;
