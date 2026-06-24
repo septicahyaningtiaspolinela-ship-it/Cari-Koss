@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 const pool = require('./db');
 
 dotenv.config();
@@ -14,17 +16,24 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Set up Multer for local file storage (Sebagai fallback / sementara sebelum integrasi Cloudinary/Supabase)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+// Konfigurasi Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Konfigurasi Multer untuk Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'kos_uploads',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp']
   }
 });
 const upload = multer({ storage });
-// Serve static files from 'uploads' folder
+
+// (Opsional) Tetap serve folder uploads jika masih ada file lama di lokal
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Middleware for auth
@@ -122,7 +131,7 @@ app.get('/api/kos/:id', async (req, res) => {
 app.post('/api/kos', authenticate, upload.single('foto_kos'), async (req, res) => {
   const { nama_kos, alamat_kos, tipe_kos, harga_mulai_dari, periode_sewa, fasilitas_umum, fasilitas_kamar, no_wa_pemilik } = req.body;
   const id_pemilik = req.user.id_pemilik;
-  const foto_kos = req.file ? `/uploads/${req.file.filename}` : null; // TODO: Ubah ke URL Supabase Storage nantinya
+  const foto_kos = req.file ? req.file.path : null; // Sekarang path adalah URL Cloudinary
   
   try {
     const result = await pool.query(
@@ -160,7 +169,7 @@ app.put('/api/kos/:id', authenticate, upload.single('foto_kos'), async (req, res
     
     if (req.file) {
       query += ', foto_kos=$9 WHERE id_kos=$10 RETURNING *';
-      values.push(`/uploads/${req.file.filename}`, req.params.id);
+      values.push(req.file.path, req.params.id); // req.file.path adalah URL Cloudinary
     } else {
       query += ' WHERE id_kos=$9 RETURNING *';
       values.push(req.params.id);
