@@ -1,6 +1,98 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+// ── Confirm Modal ──
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onCancel(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(6px)',
+        animation: 'fadeInOverlay 0.2s ease'
+      }}
+    >
+      <div style={{
+        background: 'var(--surface, #fff)',
+        borderRadius: '16px',
+        padding: '2rem 2.5rem',
+        maxWidth: '420px',
+        width: '90%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        animation: 'scaleInModal 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+        textAlign: 'center'
+      }}>
+        {/* Icon */}
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          background: 'rgba(239,68,68,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 1.25rem',
+          fontSize: '2rem'
+        }}>
+          🗑️
+        </div>
+        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary, #1a1a1a)' }}>
+          {title}
+        </h3>
+        <p style={{ color: 'var(--text-secondary, #666)', fontSize: '0.92rem', margin: '0 0 1.75rem', lineHeight: '1.5' }}>
+          {message}
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: '0.65rem 1.25rem', borderRadius: '8px',
+              border: '1px solid var(--surface-light, #ddd)',
+              background: 'transparent', cursor: 'pointer',
+              fontSize: '0.9rem', fontWeight: '600',
+              color: 'var(--text-secondary, #555)',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 1, padding: '0.65rem 1.25rem', borderRadius: '8px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600',
+              color: '#fff', boxShadow: '0 4px 12px rgba(239,68,68,0.35)',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(239,68,68,0.45)'; }}
+            onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 12px rgba(239,68,68,0.35)'; }}
+          >
+            Ya, Hapus!
+          </button>
+        </div>
+      </div>
+      <style>{`
+        @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleInModal { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
+    </div>
+  );
+};
 
 const API = 'http://localhost:5000/api';
 
@@ -167,6 +259,9 @@ const Dashboard = () => {
   const [selectedKos, setSelectedKos] = useState(null);
   const [notif, setNotif] = useState({ msg: '', type: '' });
 
+  // ── Confirm Modal ──
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
   const emptyKosForm = {
     nama_kos: '', alamat_kos: '', tipe_kos: 'Putra',
     harga_mulai_dari: '', periode_sewa: 'Bulan', fasilitas_umum: '', fasilitas_kamar: '', no_wa_pemilik: '', foto: null
@@ -252,15 +347,22 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteKos = async (id_kos) => {
-    if (!window.confirm('Yakin ingin menghapus kos ini? Semua kamarnya juga akan terhapus.')) return;
-    try {
-      await axios.delete(`${API}/kos/${id_kos}`, { headers });
-      showNotif('Kos berhasil dihapus!');
-      fetchKos();
-    } catch (err) {
-      showNotif('Gagal menghapus kos.', 'error');
-    }
+  const handleDeleteKos = (id_kos) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Kos?',
+      message: 'Yakin ingin menghapus kos ini? Semua kamar yang terdaftar juga akan ikut terhapus secara permanen.',
+      onConfirm: async () => {
+        setConfirmModal(m => ({ ...m, isOpen: false }));
+        try {
+          await axios.delete(`${API}/kos/${id_kos}`, { headers });
+          showNotif('Kos berhasil dihapus!');
+          fetchKos();
+        } catch (err) {
+          showNotif('Gagal menghapus kos.', 'error');
+        }
+      }
+    });
   };
 
   // ── Kamar CRUD ──
@@ -287,15 +389,22 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteKamar = async (id_kamar) => {
-    if (!window.confirm('Yakin ingin menghapus kamar ini?')) return;
-    try {
-      await axios.delete(`${API}/kamar/${id_kamar}`, { headers });
-      showNotif('Kamar berhasil dihapus!');
-      fetchKamar(selectedKosKamar.id_kos);
-    } catch (err) {
-      showNotif('Gagal menghapus kamar.', 'error');
-    }
+  const handleDeleteKamar = (id_kamar) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Kamar?',
+      message: 'Yakin ingin menghapus kamar ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        setConfirmModal(m => ({ ...m, isOpen: false }));
+        try {
+          await axios.delete(`${API}/kamar/${id_kamar}`, { headers });
+          showNotif('Kamar berhasil dihapus!');
+          fetchKamar(selectedKosKamar.id_kos);
+        } catch (err) {
+          showNotif('Gagal menghapus kamar.', 'error');
+        }
+      }
+    });
   };
 
   // ── Tab helpers ──
@@ -325,6 +434,14 @@ const Dashboard = () => {
 
   return (
     <div className="container animate-fade-in">
+      {/* ── Confirm Modal ── */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+      />
       <div className="flex justify-between items-center mb-8">
         <h1>Dashboard Pemilik</h1>
         {activeTab === 'list' && (
