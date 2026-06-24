@@ -11,7 +11,7 @@ const DetailKos = () => {
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/kos/${id}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/kos/${id}`);
         setKos(res.data);
         setLoading(false);
       } catch (err) {
@@ -26,7 +26,7 @@ const DetailKos = () => {
   if (!kos) return <div className="text-center mt-8">Kos tidak ditemukan</div>;
 
   const imageUrl = kos.foto_kos
-    ? `http://localhost:5000${kos.foto_kos}`
+    ? (kos.foto_kos.startsWith('http') ? kos.foto_kos : `${import.meta.env.VITE_API_URL}${kos.foto_kos}`)
     : 'https://via.placeholder.com/800x400?text=Kos+Tidak+Ada+Foto';
 
   // Format WhatsApp number

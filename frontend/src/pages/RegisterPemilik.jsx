@@ -25,7 +25,7 @@ const RegisterPemilik = () => {
     }
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         nama_pemilik: form.nama_pemilik,
         username: form.username,
         password: form.password,

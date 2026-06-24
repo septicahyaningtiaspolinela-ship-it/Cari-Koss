@@ -94,7 +94,7 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
   );
 };
 
-const API = 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL}/api`;
 
 // ✅ KosForm dipindahkan ke LUAR Dashboard agar tidak di-remount setiap render
 const KosForm = ({ kosForm, onChange, onSubmit, onCancel, isEdit = false }) => (

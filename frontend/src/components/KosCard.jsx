@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 const KosCard = ({ kos }) => {
   const imageUrl = kos.foto_kos
-    ? `http://localhost:5000${kos.foto_kos}`
+    ? (kos.foto_kos.startsWith('http') ? kos.foto_kos : `${import.meta.env.VITE_API_URL}${kos.foto_kos}`)
     : 'https://via.placeholder.com/400x300?text=Kos+Tidak+Ada+Foto';
 
   const jumlahKosong = Number(kos.jumlah_kosong) || 0;

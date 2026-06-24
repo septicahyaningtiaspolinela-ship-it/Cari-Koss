@@ -11,7 +11,7 @@ const Home = () => {
   useEffect(() => {
     const fetchKos = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/kos');
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/kos`);
         setKosList(res.data);
         setLoading(false);
       } catch (err) {
